@@ -1,0 +1,86 @@
+version: 2
+
+sources:
+  - name: public
+    tables:
+      - name: customers
+      - name: product
+      - name: product_category
+      - name: suppliers
+      - name: coupons
+      - name: orders
+      - name: order_items
+
+models:
+  - name: stg_customers
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: first_name
+        tests:
+          - not_null
+      - name: last_name
+        tests:
+          - not_null
+
+  - name: stg_products
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_product_categories
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_suppliers
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_coupons
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_orders
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: id
+
+  - name: stg_order_items
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: id
+      - name: product_id
+        tests:c
+          - not_null
+          - relationships:
+              to: ref('stg_products')
+              field: id
