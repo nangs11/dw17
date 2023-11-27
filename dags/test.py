@@ -35,7 +35,6 @@ def ingest_json_files_login_attempts(folder_path, table_name):
     conn = get_sqlalchemy_conn()
     for file_path in glob.glob(f"{folder_path}/login_attempts_*.json"):
         df = pd.read_json(file_path)
-        df.set_index('id',inplace=True)
         df.to_sql(table_name, conn, if_exists='append', index=False)
     conn.close()
 
@@ -43,7 +42,6 @@ def ingest_json_files_coupons(folder_path, table_name):
     conn = get_sqlalchemy_conn()
     for file_path in glob.glob(f"{folder_path}/coupons.json"):
         df = pd.read_json(file_path)
-        df.set_index('id',inplace=True)
         df.to_sql(table_name, conn, if_exists='append', index=False)
     conn.close()
 
@@ -90,7 +88,6 @@ def ingest_avro_file(file_path, table_name):
 
     # Convert the list of dictionaries to a DataFrame
     df = pd.DataFrame(data_list)
-    df.set_index('id',inplace=True)
     df.to_sql(table_name, conn, if_exists='append', index=False)
     conn.close()
 
@@ -145,21 +142,21 @@ ingest_json_files_coupons_task = PythonOperator(
 
 # XLS task
 ingest_xls_files_supplier_task = PythonOperator(
-    task_id='ingest_xls',
+    task_id='ingest_xls_supplier',
     python_callable=ingest_xls_files_supplier,
     op_kwargs={'folder_path': data_folder_path, 'table_name': 'suppliers'},  # Update table name as needed
     dag=dag,
 )
 
 ingest_xls_files_product_task = PythonOperator(
-    task_id='ingest_xls',
+    task_id='ingest_xls_product',
     python_callable=ingest_xls_files_product,
     op_kwargs={'folder_path': data_folder_path, 'table_name': 'product'},  # Update table name as needed
     dag=dag,
 )
 
 ingest_xls_files_product_category_task = PythonOperator(
-    task_id='ingest_xls',
+    task_id='ingest_xls_product_category',
     python_callable=ingest_xls_files_product_category,
     op_kwargs={'folder_path': data_folder_path, 'table_name': 'product_category'},  # Update table name as needed
     dag=dag,
@@ -182,4 +179,4 @@ ingest_avro_task = PythonOperator(
 )
 
 # Setting dependencies
-test_conn_task >> [ingest_csv_task, ingest_xls_files_supplier_task, ingest_json_files_login_attempts_task, ingest_parquet_task, ingest_avro_task]
+test_conn_task >> [ingest_csv_task, ingest_json_files_login_attempts_task, ingest_json_files_coupons_task, ingest_xls_files_supplier_task, ingest_xls_files_product_task, ingest_xls_files_product_category_task, ingest_parquet_task, ingest_avro_task]
