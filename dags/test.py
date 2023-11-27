@@ -8,6 +8,7 @@ import os
 import glob
 from avro.datafile import DataFileReader
 from avro.io import DatumReader
+from airflow.utils.task_group import TaskGroup
 import pyarrow.parquet as pq
 
 # SQLAlchemy connection function
@@ -93,90 +94,97 @@ def ingest_avro_file(file_path, table_name):
 
 # DAG definition
 default_args = {
-    'owner': 'airflow',
+    'owner': 'kel11',
     'depends_on_past': False,
-    'start_date': datetime(2023, 11, 26),
+    'start_date': datetime(2023, 11, 27),
     'email_on_failure': False,
     'email_on_retry': False,
-    'retry_delay': timedelta(minutes=5),
+    'catchup': False
 }
 
 dag = DAG(
     'data_ingestion',
     default_args=default_args,
     description='DAG for ingesting data files into PostgreSQL',
-    schedule_interval=timedelta(days=1),
+    schedule_interval=None,
 )
 
 data_folder_path = 'data/'
 
-test_conn_task = PythonOperator(
-    task_id='test_connection',
-    python_callable=test_conn,
-    dag=dag,
-)
+with dag:
+    test_conn_task = PythonOperator(
+        task_id='test_connection',
+        python_callable=test_conn,
+        dag=dag,
+    )
 
-# CSV task
-ingest_csv_task = PythonOperator(
-    task_id='ingest_csv',
-    python_callable=ingest_csv_files,
-    op_kwargs={'folder_path': data_folder_path, 'table_name': 'customers'},
-    dag=dag,
-)
+    # CSV task
+    ingest_csv_task = PythonOperator(
+        task_id='ingest_csv',
+        python_callable=ingest_csv_files,
+        op_kwargs={'folder_path': data_folder_path, 'table_name': 'customers'},
+        dag=dag,
+    )
 
-# JSON task
-ingest_json_files_login_attempts_task = PythonOperator(
-    task_id='ingest_json_login_attempts',
-    python_callable=ingest_json_files_login_attempts,
-    op_kwargs={'folder_path': data_folder_path, 'table_name': 'login_attempt_history'},
-    dag=dag,
-)
+    with TaskGroup("ingest_json_tasks") as json_task_group:
+        # JSON task
+        ingest_json_files_login_attempts_task = PythonOperator(
+            task_id='ingest_json_login_attempts',
+            python_callable=ingest_json_files_login_attempts,
+            op_kwargs={'folder_path': data_folder_path, 'table_name': 'login_attempt_history'},
+            dag=dag,
+        )
 
-ingest_json_files_coupons_task = PythonOperator(
-    task_id='ingest_json_coupons',
-    python_callable=ingest_json_files_coupons,
-    op_kwargs={'folder_path': data_folder_path, 'table_name': 'coupons'},
-    dag=dag,
-)
+        ingest_json_files_coupons_task = PythonOperator(
+            task_id='ingest_json_coupons',
+            python_callable=ingest_json_files_coupons,
+            op_kwargs={'folder_path': data_folder_path, 'table_name': 'coupons'},
+            dag=dag,
+        )
+
+    # XLS task group
+    with TaskGroup("ingest_xls_tasks") as xls_task_group:
+        ingest_xls_files_supplier_task = PythonOperator(
+            task_id='ingest_xls_supplier',
+            python_callable=ingest_xls_files_supplier,
+            op_kwargs={'folder_path': data_folder_path, 'table_name': 'suppliers'},  # Update table name as needed
+            dag=dag,
+        )
+
+        ingest_xls_files_product_task = PythonOperator(
+            task_id='ingest_xls_product',
+            python_callable=ingest_xls_files_product,
+            op_kwargs={'folder_path': data_folder_path, 'table_name': 'product'},  # Update table name as needed
+            dag=dag,
+        )
+
+        ingest_xls_files_product_category_task = PythonOperator(
+            task_id='ingest_xls_product_category',
+            python_callable=ingest_xls_files_product_category,
+            op_kwargs={'folder_path': data_folder_path, 'table_name': 'product_category'},  # Update table name as needed
+            dag=dag,
+        )
 
 
-# XLS task
-ingest_xls_files_supplier_task = PythonOperator(
-    task_id='ingest_xls_supplier',
-    python_callable=ingest_xls_files_supplier,
-    op_kwargs={'folder_path': data_folder_path, 'table_name': 'suppliers'},  # Update table name as needed
-    dag=dag,
-)
+    # PARQUET task
+    ingest_parquet_task = PythonOperator(
+        task_id='ingest_parquet',
+        python_callable=ingest_parquet_file,
+        op_kwargs={'file_path': f'{data_folder_path}/order.parquet', 'table_name': 'orders'},
+        dag=dag,
+    )
 
-ingest_xls_files_product_task = PythonOperator(
-    task_id='ingest_xls_product',
-    python_callable=ingest_xls_files_product,
-    op_kwargs={'folder_path': data_folder_path, 'table_name': 'product'},  # Update table name as needed
-    dag=dag,
-)
-
-ingest_xls_files_product_category_task = PythonOperator(
-    task_id='ingest_xls_product_category',
-    python_callable=ingest_xls_files_product_category,
-    op_kwargs={'folder_path': data_folder_path, 'table_name': 'product_category'},  # Update table name as needed
-    dag=dag,
-)
-
-# PARQUET task
-ingest_parquet_task = PythonOperator(
-    task_id='ingest_parquet',
-    python_callable=ingest_parquet_file,
-    op_kwargs={'file_path': f'{data_folder_path}/order.parquet', 'table_name': 'orders'},
-    dag=dag,
-)
-
-# AVRO task
-ingest_avro_task = PythonOperator(
-    task_id='ingest_avro',
-    python_callable=ingest_avro_file,
-    op_kwargs={'file_path': f'{data_folder_path}/order_item.avro', 'table_name': 'order_items'},
-    dag=dag,
-)
+    # AVRO task
+    ingest_avro_task = PythonOperator(
+        task_id='ingest_avro',
+        python_callable=ingest_avro_file,
+        op_kwargs={'file_path': f'{data_folder_path}/order_item.avro', 'table_name': 'order_items'},
+        dag=dag,
+    )
 
 # Setting dependencies
-test_conn_task >> [ingest_csv_task, ingest_json_files_login_attempts_task, ingest_json_files_coupons_task, ingest_xls_files_supplier_task, ingest_xls_files_product_task, ingest_xls_files_product_category_task, ingest_parquet_task, ingest_avro_task]
+test_conn_task >> ingest_csv_task
+test_conn_task >> xls_task_group
+test_conn_task >> ingest_parquet_task
+test_conn_task >> ingest_avro_task
+test_conn_task >> json_task_group
