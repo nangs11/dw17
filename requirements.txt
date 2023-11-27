@@ -5,3 +5,4 @@ pyarrow
 sqlalchemy
 xlrd
 python-snappy
+astronomer-cosmos[dbt-postgres]
