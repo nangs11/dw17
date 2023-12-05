@@ -1,33 +1,37 @@
-# data_ingestion_dag.py
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.utils.task_group import TaskGroup
+
 from datetime import datetime
 
-from utils.ingest import *
+from utils.ingestion import *
+from utils.notification import Notification
 
 
 # DAG definition
 default_args = {
     'owner': 'kel11',
-    'depends_on_past': False,
-    'start_date': datetime(2023, 11, 27),
-    'email_on_failure': False,
-    'email_on_retry': False,
-    'catchup': False
+    'depends_on_past':False,
+    'on_failure_callback': Notification.push,
+    'on_retry_callback': Notification.push,
+    'on_success_callback': Notification.push,
+    'start_date': datetime(2023, 11, 27)
 }
 
 dag = DAG(
-    'data_ingestion',
+    'ingest_data_dags',
     default_args=default_args,
     description='DAG for ingesting data files into PostgreSQL',
-    schedule_interval=None,
+    catchup=False,
+    schedule_interval='@once',
+    tags=['ingesting']
 )
 
 data_folder_path = 'data/'
 
 with dag:
+    # Task to test the connection
     test_conn_task = PythonOperator(
         task_id='test_connection',
         python_callable=test_conn,
@@ -44,6 +48,7 @@ with dag:
 
     # JSON task
     with TaskGroup("ingest_json_tasks") as json_task_group:
+        # Task to ingest JSON files for login attempts
         ingest_json_files_login_attempts_task = PythonOperator(
             task_id='ingest_json_login_attempts',
             python_callable=ingest_json_files_login_attempts,
@@ -51,6 +56,7 @@ with dag:
             dag=dag,
         )
 
+        # Task to ingest JSON files for coupons
         ingest_json_files_coupons_task = PythonOperator(
             task_id='ingest_json_coupons',
             python_callable=ingest_json_files_coupons,
@@ -60,6 +66,7 @@ with dag:
 
     # XLS task group
     with TaskGroup("ingest_xls_tasks") as xls_task_group:
+        # Task to ingest XLS files for suppliers
         ingest_xls_files_supplier_task = PythonOperator(
             task_id='ingest_xls_supplier',
             python_callable=ingest_xls_files_supplier,
@@ -67,6 +74,7 @@ with dag:
             dag=dag,
         )
 
+        # Task to ingest XLS files for products
         ingest_xls_files_product_task = PythonOperator(
             task_id='ingest_xls_product',
             python_callable=ingest_xls_files_product,
@@ -74,6 +82,7 @@ with dag:
             dag=dag,
         )
 
+        # Task to ingest XLS files for product categories
         ingest_xls_files_product_category_task = PythonOperator(
             task_id='ingest_xls_product_category',
             python_callable=ingest_xls_files_product_category,

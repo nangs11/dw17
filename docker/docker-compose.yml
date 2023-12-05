@@ -50,6 +50,8 @@ services:
       - AIRFLOW__CORE__DAG_FILE_PROCESSOR_TIMEOUT=999999
       - AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT=999999
       - AIRFLOW__WEBSERVER__SECRET_KEY=123456789
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     volumes:
       - ../dags:/opt/airflow/dags:rw
       - ../data:/opt/airflow/data:rw
@@ -74,6 +76,8 @@ services:
       - AIRFLOW__CORE__DAG_FILE_PROCESSOR_TIMEOUT=999999
       - AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT=999999
       - AIRFLOW__WEBSERVER__SECRET_KEY=123456789
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     volumes:
       - ../dags:/opt/airflow/dags:rw
       - ../data:/opt/airflow/data:rw

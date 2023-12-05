@@ -6,3 +6,4 @@ sqlalchemy
 xlrd
 python-snappy
 astronomer-cosmos[dbt-postgres]
+apache-airflow-providers-telegram==4.1.1 

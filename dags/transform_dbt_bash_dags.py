@@ -1,23 +1,30 @@
-
 from pendulum import datetime
 
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 
-# We're hardcoding this value here for the purpose of the demo, but in a production environment this
-# would probably come from a config file and/or environment variables!
+from utils.notification import Notification
+
+
 DBT_PROJECT_DIR = "/opt/airflow/dags/dbt/dbt_fp"
 
+default_args = {
+    'owner': 'kel11',
+    'depends_on_past':False,
+    'on_failure_callback': Notification.push,
+    'on_retry_callback': Notification.push,
+    'on_success_callback': Notification.push,
+    'start_date': datetime(2023, 11, 27)
+}
 
 with DAG(
-    "dbt_bash",
-    start_date=datetime(2020, 12, 23),
+    "transform_dbt_bash_dags",
+    default_args=default_args,
     description="A sample Airflow DAG to invoke dbt runs using a BashOperator",
-    schedule_interval=None,
-    catchup=False
+    schedule_interval='@once',
+    catchup=False,
+    tags=["transform", "dbt", "bash"]
 ) as dag:
-    # This task loads the CSV files from dbt/data into the local postgres database for the purpose of this demo.
-    # In practice, we'd usually expect the data to have already been loaded to the database.
 
     dbt_run = BashOperator(
         task_id="dbt_run",
