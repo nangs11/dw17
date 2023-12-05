@@ -53,10 +53,10 @@ services:
       - AIRFLOW__WEBSERVER__SECRET_KEY=123456789
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - AIRFLOW__METRICS__STATSD_ON=True
-      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
-      - AIRFLOW__METRICS__STATSD_PORT=9125
-      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
+      - AIRFLOW__SCHEDULER__STATSD_ON=True
+      - AIRFLOW__SCHEDULER__STATSD_HOST=statsd-exporter
+      - AIRFLOW__SCHEDULER__STATSD_PORT=8125
+      - AIRFLOW__SCHEDULER__STATSD_PREFIX=airflow
     volumes:
       - ../dags:/opt/airflow/dags:rw
       - ../data:/opt/airflow/data:rw
@@ -84,10 +84,10 @@ services:
       - AIRFLOW__WEBSERVER__SECRET_KEY=123456789
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - AIRFLOW__METRICS__STATSD_ON=True
-      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
-      - AIRFLOW__METRICS__STATSD_PORT=9125
-      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
+      - AIRFLOW__SCHEDULER__STATSD_ON=True
+      - AIRFLOW__SCHEDULER__STATSD_HOST=statsd-exporter
+      - AIRFLOW__SCHEDULER__STATSD_PORT=8125
+      - AIRFLOW__SCHEDULER__STATSD_PREFIX=airflow
     volumes:
       - ../dags:/opt/airflow/dags:rw
       - ../data:/opt/airflow/data:rw
@@ -132,29 +132,37 @@ services:
   #   command: sh /tmp/metabase_entrypoint.sh ${METABASE_CONTAINER_NAME}:3000
 
   statsd-exporter:
-    image: prom/statsd-exporter:v0.21.0
-    volumes:
-      - ../configs/statsd.yml:/home/statsd-mapping-configs.yaml
-    entrypoint: ["/bin/sh", "-c", "--"]
-    command: ["statsd_exporter --log.level debug --statsd.mapping-config=/home/statsd-mapping-configs.yaml"]
+    image: prom/statsd-exporter
+    container_name: airflow-statsd-exporter
+    command: "--statsd.listen-udp=:8125 --web.listen-address=:9102"
     ports:
-      - ${STATSD_EXP_SCRAPE_PORT}:9102   # scrape port
-      - ${STATSD_EXP_INGEST_PORT}:9125   # ingest port
-    restart: always
+      - 9123:9102
+      - 8125:8125/udp
 
   prometheus:
     image: prom/prometheus
+    container_name: airflow-prometheus
+    user: "0"
     ports:
-      - ${PROMETHEUS_PORT}:9090
+      - 9090:9090
     volumes:
       - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    restart: always
+      - ../prometheus/volume:/prometheus
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:7.1.5
+    container_name: airflow-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: password
+      GF_PATHS_PROVISIONING: /grafana/provisioning
     ports:
-      - ${GRAFANA_PORT}:3000
-    restart: always
+      - 3000:3000
+    volumes:
+      - ../grafana/volume/data:/grafana
+      - ../grafana/volume/datasources:/grafana/datasources
+      - ../grafana/volume/dashboards:/grafana/dashboards
+      - ../grafana/volume/provisioning:/grafana/provisioning
 
 networks:
   default:
