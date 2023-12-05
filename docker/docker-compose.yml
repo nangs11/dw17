@@ -39,6 +39,7 @@ services:
     restart: always
     depends_on:
       - dibimbing-dataeng-ops-postgres
+      - statsd-exporter
     environment:
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${OPS_POSTGRES_USER}:${OPS_POSTGRES_PASSWORD}@${OPS_POSTGRES_CONTAINER_NAME}/${OPS_POSTGRES_DB}
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
@@ -52,6 +53,10 @@ services:
       - AIRFLOW__WEBSERVER__SECRET_KEY=123456789
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - AIRFLOW__METRICS__STATSD_ON=True
+      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
+      - AIRFLOW__METRICS__STATSD_PORT=9125
+      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
     volumes:
       - ../dags:/opt/airflow/dags:rw
       - ../data:/opt/airflow/data:rw
@@ -65,6 +70,7 @@ services:
     restart: always
     depends_on:
       - scheduler
+      - statsd-exporter
     environment:
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${OPS_POSTGRES_USER}:${OPS_POSTGRES_PASSWORD}@${OPS_POSTGRES_CONTAINER_NAME}/${OPS_POSTGRES_DB}
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
@@ -78,6 +84,10 @@ services:
       - AIRFLOW__WEBSERVER__SECRET_KEY=123456789
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - AIRFLOW__METRICS__STATSD_ON=True
+      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
+      - AIRFLOW__METRICS__STATSD_PORT=9125
+      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
     volumes:
       - ../dags:/opt/airflow/dags:rw
       - ../data:/opt/airflow/data:rw
@@ -120,6 +130,31 @@ services:
   #     - MB_USER_FIRST_NAME=${METABASE_USER_FIRST_NAME}
   #     - MB_USER_LAST_NAME=${METABASE_USER_LAST_NAME}
   #   command: sh /tmp/metabase_entrypoint.sh ${METABASE_CONTAINER_NAME}:3000
+
+  statsd-exporter:
+    image: prom/statsd-exporter:v0.21.0
+    volumes:
+      - ../configs/statsd.yml:/home/statsd-mapping-configs.yaml
+    entrypoint: ["/bin/sh", "-c", "--"]
+    command: ["statsd_exporter --log.level debug --statsd.mapping-config=/home/statsd-mapping-configs.yaml"]
+    ports:
+      - ${STATSD_EXP_SCRAPE_PORT}:9102   # scrape port
+      - ${STATSD_EXP_INGEST_PORT}:9125   # ingest port
+    restart: always
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - ${PROMETHEUS_PORT}:9090
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: always
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - ${GRAFANA_PORT}:3000
+    restart: always
 
 networks:
   default:

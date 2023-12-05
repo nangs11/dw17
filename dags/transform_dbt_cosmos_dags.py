@@ -28,6 +28,7 @@ example_virtualenv = DbtDag(
         "py_requirements": ["dbt-postgres==1.7.2"],
         "install_deps": True,
     },
+    
     # normal dag parameters
     dag_id="transform_dbt_cosmos_dags",
     tags=["transform", "dbt", "cosmos"],
