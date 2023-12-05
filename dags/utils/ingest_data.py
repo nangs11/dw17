@@ -87,4 +87,3 @@ def ingest_avro_file(file_path, table_name):
     df = pd.DataFrame(data_list)
     df.to_sql(table_name, conn, if_exists='append', index=False)
     conn.close()
-
