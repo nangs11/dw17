@@ -79,7 +79,7 @@ models:
               to: ref('stg_orders')
               field: id
       - name: product_id
-        tests:c
+        tests:
           - not_null
           - relationships:
               to: ref('stg_products')

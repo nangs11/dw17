@@ -5,7 +5,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 
-from lib.ingest import *
+from utils.ingest import *
 
 
 # DAG definition
@@ -42,8 +42,8 @@ with dag:
         dag=dag,
     )
 
+    # JSON task
     with TaskGroup("ingest_json_tasks") as json_task_group:
-        # JSON task
         ingest_json_files_login_attempts_task = PythonOperator(
             task_id='ingest_json_login_attempts',
             python_callable=ingest_json_files_login_attempts,

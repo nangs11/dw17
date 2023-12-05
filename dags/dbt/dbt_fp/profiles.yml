@@ -1,0 +1,12 @@
+dbt_fp:
+  outputs:
+    dev:
+      dbname: data_warehouse
+      host: dataeng-warehouse-postgres
+      pass: password
+      port: 5432
+      schema: public
+      threads: 2
+      type: postgres
+      user: user
+  target: dev
