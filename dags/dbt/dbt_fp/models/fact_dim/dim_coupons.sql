@@ -1,4 +1,4 @@
 SELECT
-  id,
-  discount_percent
+    id AS coupon_id,
+    discount_percent
 FROM {{ source('public', 'coupons') }}

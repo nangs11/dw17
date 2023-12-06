@@ -10,77 +10,69 @@ sources:
       - name: coupons
       - name: orders
       - name: order_items
+      - name: login_attempt_history
 
 models:
-  - name: stg_customers
+  - name: fact_orders
     columns:
-      - name: id
-        tests:
-          - unique
-          - not_null
-      - name: first_name
+      - name: order_id
         tests:
           - not_null
-      - name: last_name
+      - name: customer_id
         tests:
           - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_id
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
 
-  - name: stg_products
+  - name: fact_login_attempts
     columns:
-      - name: id
-        tests:
-          - unique
-          - not_null
-
-  - name: stg_product_categories
-    columns:
-      - name: id
-        tests:
-          - unique
-          - not_null
-
-  - name: stg_suppliers
-    columns:
-      - name: id
-        tests:
-          - unique
-          - not_null
-
-  - name: stg_coupons
-    columns:
-      - name: id
-        tests:
-          - unique
-          - not_null
-
-  - name: stg_orders
-    columns:
-      - name: id
+      - name: attempt_id
         tests:
           - unique
           - not_null
       - name: customer_id
         tests:
           - not_null
-          - relationships:
-              to: ref('stg_customers')
-              field: id
 
-  - name: stg_order_items
+  - name: dim_customers
     columns:
-      - name: id
+      - name: customer_id
         tests:
           - unique
           - not_null
-      - name: order_id
-        tests:
-          - not_null
-          - relationships:
-              to: ref('stg_orders')
-              field: id
+
+  - name: dim_products
+    columns:
       - name: product_id
         tests:
+          - unique
           - not_null
-          - relationships:
-              to: ref('stg_products')
-              field: id
+
+  - name: dim_suppliers
+    columns:
+      - name: supplier_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_categories
+    columns:
+      - name: category_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_coupons
+    columns:
+      - name: coupon_id
+        tests:
+          - unique
+          - not_null
+

@@ -33,6 +33,6 @@ clean-targets:         # directories to be removed by `dbt clean`
 models:
   dbt_fp:
     marts:
-      +materialized: table
-    staging:
+      +materialized: view
+    fact_dim:
       +materialized: view

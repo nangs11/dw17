@@ -39,5 +39,11 @@ with DAG(
         bash_command=f"dbt test --profiles-dir {DBT_PROJECT_DIR} --project-dir {DBT_PROJECT_DIR}"
     )
 
-    # Set the dependency between dbt_run and dbt_test tasks
-    dbt_run >> dbt_test
+    # Define a BashOperator task to run dbt docs generate
+    dbt_docs_generate = BashOperator(
+        task_id="dbt_docs_generate",
+        bash_command=f"dbt docs generate --profiles-dir {DBT_PROJECT_DIR} --project-dir {DBT_PROJECT_DIR}"
+    )
+
+    # Set the dependency
+    dbt_run >> dbt_test >> dbt_docs_generate
